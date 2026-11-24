@@ -1,0 +1,38 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  workflow_run:
+    workflows: ["Upstream Sync"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Write local wrangler.toml
+        run: |
+          cat << 'EOF' > wrangler.toml
+          name = "edgtunel-mico"
+          main = "_worker.js"
+          compatibility_date = "2026-11-24"
+          keep_vars = true
+
+          [[kv_namespaces]]
+          binding = "KV"
+          id = "6d22a35ae09e425fbe46053dbb39f85e"
+
+          [observability]
+          enabled = true
+          EOF
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
