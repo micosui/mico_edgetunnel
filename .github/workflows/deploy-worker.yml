@@ -81,6 +81,5 @@ jobs:
           git add .last-cf-deploy
           if ! git diff --cached --quiet; then
             git commit -m "chore: record Cloudflare Worker deploy timestamp"
-            git pull --rebase origin main
-            git push origin main
+            git push origin HEAD:main
           fi
