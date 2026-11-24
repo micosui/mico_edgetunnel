@@ -6,6 +6,9 @@ on:
     types: [completed]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -13,8 +16,39 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Check 15-day interval
+        id: check_interval
+        run: |
+          INTERVAL_DAYS=15
+          INTERVAL_SEC=$((INTERVAL_DAYS * 86400))
+          NOW_SEC=$(date -u +%s)
+          LAST_FILE=".last-cf-deploy"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -f "$LAST_FILE" ]; then
+            LAST_SEC=$(tr -d '[:space:]' < "$LAST_FILE")
+            if echo "$LAST_SEC" | grep -qE '^[0-9]+$'; then
+              ELAPSED=$((NOW_SEC - LAST_SEC))
+              echo "Elapsed seconds: $ELAPSED / Required: $INTERVAL_SEC"
+              if [ "$ELAPSED" -lt "$INTERVAL_SEC" ]; then
+                echo "Less than $INTERVAL_DAYS days since last deploy. Skipping."
+                echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+            fi
+          fi
+
+          echo "should_deploy=true" >> "$GITHUB_OUTPUT"
 
       - name: Write local wrangler.toml
+        if: steps.check_interval.outputs.should_deploy == 'true'
         run: |
           cat << 'EOF' > wrangler.toml
           name = "edgtunel-mico"
@@ -31,8 +65,22 @@ jobs:
           EOF
 
       - name: Deploy Worker
+        if: steps.check_interval.outputs.should_deploy == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
+
+      - name: Record deploy timestamp
+        if: steps.check_interval.outputs.should_deploy == 'true'
+        run: |
+          date -u +%s > .last-cf-deploy
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .last-cf-deploy
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: record Cloudflare Worker deploy timestamp"
+            git pull --rebase origin main
+            git push origin main
+          fi
