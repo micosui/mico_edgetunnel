@@ -6,3 +6,5 @@ keep_vars = true
 [[kv_namespaces]]
 binding = "KV"			#KV绑定名默认不可修改
 id = "6d22a35ae09e425fbe46053dbb39f85e"				#KV数据库id
+[observability]
+enabled = true
