@@ -1,10 +1,14 @@
 name = "edgtunel-mico"
 main = "_worker.js"
-compatibility_date = "2025-11-04"
+compatibility_date = "2026-11-24"
 keep_vars = true
 
 [[kv_namespaces]]
-binding = "KV"			#KV绑定名默认不可修改
-id = "6d22a35ae09e425fbe46053dbb39f85e"				#KV数据库id
+binding = "KV"
+id = "6d22a35ae09e425fbe46053dbb39f85e"
+
 [observability]
 enabled = true
+
+workers_dev = false
+preview_urls = false
