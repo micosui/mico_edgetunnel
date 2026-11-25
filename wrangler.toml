@@ -1,7 +1,8 @@
 name = "edgtunel-mico"
 main = "_worker.js"
 compatibility_date = "2026-11-24"
-keep_vars = true
+workers_dev = false
+preview_urls = false
 
 [[kv_namespaces]]
 binding = "KV"
@@ -9,6 +10,3 @@ id = "6d22a35ae09e425fbe46053dbb39f85e"
 
 [observability]
 enabled = true
-
-workers_dev = false
-preview_urls = false
