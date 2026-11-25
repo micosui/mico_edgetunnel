@@ -47,7 +47,7 @@ jobs:
 
           echo "should_deploy=true" >> "$GITHUB_OUTPUT"
 
-      - name: Write local wrangler.toml
+      - name: Update wrangler.toml
         if: steps.check_interval.outputs.should_deploy == 'true'
         run: |
           cat << 'EOF' > wrangler.toml
@@ -75,14 +75,14 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
 
-      - name: Record deploy timestamp
+      - name: Commit and push wrangler.toml and timestamp
         if: steps.check_interval.outputs.should_deploy == 'true'
         run: |
           date -u +%s > .last-cf-deploy
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .last-cf-deploy
+          git add wrangler.toml .last-cf-deploy
           if ! git diff --cached --quiet; then
-            git commit -m "chore: record Cloudflare Worker deploy timestamp"
+            git commit -m "chore: update wrangler.toml and record deploy timestamp"
             git push origin HEAD:main
           fi
